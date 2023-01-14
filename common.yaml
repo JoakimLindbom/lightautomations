@@ -1,0 +1,247 @@
+input_number:
+  brightness_low:
+    name: Brightness low
+    min: 0
+    max: 100
+    step: 1
+  brightness_medium:
+    name: Brightness medium
+    min: 0
+    max: 100
+    step: 1
+  brightness_full:
+    name: Brightness full
+    min: 0
+    max: 100
+    step: 1
+
+automation:
+- id: lights_on44
+  alias: Lights On 44
+  mode: parallel
+  trigger:
+    - platform: event
+      event_type: lights_on
+  action:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: "{{ trigger.event.data.entity_id[:6] == 'switch' }}"
+            - condition: template
+              value_template: "{{ states(trigger.event.data.entity_id) == 'off' }}"
+          sequence:
+            - service: switch.turn_on
+              data_template:
+                entity_id: "{{ trigger.event.data.entity_id }}"
+        - conditions:
+            - condition: template
+              value_template: "{{ trigger.event.data.entity_id[:5] == 'light' }}"
+            - condition: or
+              conditions:
+                - condition: template
+                  value_template: "{{ states(trigger.event.data.entity_id) == 'off' }}"
+                - condition: template
+                  value_template: >
+                    {% set brightness = 'input_number.brightness_' ~ trigger.event.data.light_source %}
+                    {{ (state_attr(trigger.event.data.entity_id, 'brightness') | float / 255 * 100) | round(0) != states(brightness) | float }}
+          sequence:
+            - service: light.turn_on
+              data_template:
+                entity_id: "{{ trigger.event.data.entity_id }}"
+                brightness_pct: >
+                  {% set brightness = 'input_number.brightness_' ~ trigger.event.data.light_source %}
+                  {{ states(brightness) | float }}
+- id: lights_off
+  alias: Lights Off
+  mode: parallel
+  trigger:
+    - platform: event
+      event_type: lights_off
+  condition:
+    condition: template
+    value_template: "{{ states(trigger.event.data.entity_id) == 'on' }}"
+  action:
+    - service: homeassistant.turn_off
+      data_template:
+        entity_id: "{{ trigger.event.data.entity_id }}"
+
+#---------------------
+# Pause and unpause automations
+- id: pause_auto
+  alias: Pause Auto (on and off)
+  trigger:
+  - platform: event
+    event_type: pause_auto
+#  condition:
+#  - condition: template
+#    value_template: "{{ states('automation.motion_on_' ~ trigger.event.data.light_source) == 'on' }}"
+  action:
+  - event: pause_auto_on
+    event_data_template:
+      light_source: "{{ trigger.event.data.light_source }}"
+  - event: pause_auto_off
+    event_data_template:
+      light_source: "{{ trigger.event.data.light_source }}"
+- id: unpause_auto
+  alias: Unpause Auto (on and off)
+  trigger:
+  - platform: event
+    event_type: unpause_auto
+#  condition:
+#  - condition: template
+#    value_template: "{{ states('automation.motion_on_' ~ trigger.event.data.light_source) == 'on' }}"
+  action:
+  - event: unpause_auto_on
+    event_data_template:
+      light_source: "{{ trigger.event.data.light_source }}"
+  - event: unpause_auto_off
+    event_data_template:
+      light_source: "{{ trigger.event.data.light_source }}"
+
+- id: pause_auto_off
+  alias: Pause Auto Off
+  mode: queued
+  trigger:
+  - platform: event
+    event_type: pause_auto_off
+  condition:
+  - condition: template
+    value_template: "{{ states('automation.lights_off_' ~ trigger.event.data.light_source) == 'on' }}"
+  action:
+  - service: homeassistant.turn_off
+    data_template:
+      entity_id: "automation.lights_off_{{ trigger.event.data.light_source }}"
+
+- id: pause_auto_on
+  alias: Pause Auto On
+  mode: queued
+  trigger:
+  - platform: event
+    event_type: pause_auto_on
+  condition:
+  - condition: template
+    value_template: "{{ states('automation.lights_on_' ~ trigger.event.data.light_source) == 'on' }}"
+  action:
+  - service: homeassistant.turn_off
+    data_template:
+      entity_id: "automation.lights_on_{{ trigger.event.data.light_source }}"
+
+- id: unpause_auto_on
+  alias: UnPause Auto On
+  mode: queued
+  trigger:
+  - platform: event
+    event_type: unpause_auto_on
+  condition:
+  - condition: template
+    value_template: "{{ states('automation.lights_on_' ~ trigger.event.data.light_source) == 'off' }}"
+  action:
+  - service: homeassistant.turn_on
+    data_template:
+      entity_id: "automation.lights_on_{{ trigger.event.data.light_source }}"
+- id: unpause_auto_off
+  alias: UnPause Auto Off
+  mode: queued
+  trigger:
+  - platform: event
+    event_type: unpause_auto_off
+  condition:
+  - condition: template
+    value_template: "{{ states('automation.lights_off_' ~ trigger.event.data.light_source) == 'off' }}"
+  action:
+  - service: homeassistant.turn_on
+    data_template:
+      entity_id: "automation.lights_off_{{ trigger.event.data.light_source }}"
+
+- id: pause_motion
+  alias: Pause motion (on and off)
+  trigger:
+  - platform: event
+    event_type: pause_motion
+  condition:
+  - condition: template
+    value_template: "{{ states('automation.motion_on_' ~ trigger.event.data.light_source) == 'on' }}"
+  action:
+  - event: pause_motion_on
+    event_data_template:
+      light_source: "{{ trigger.event.data.light_source }}"
+  - event: pause_motion_off
+    event_data_template:
+      light_source: "{{ trigger.event.data.light_source }}"
+- id: unpause_motion
+  alias: Unpause motion (on and off)
+  trigger:
+  - platform: event
+    event_type: unpause_motion
+  condition:
+  - condition: template
+    value_template: "{{ states('automation.motion_on_' ~ trigger.event.data.light_source) == 'off' }}"
+  action:
+  - event: pause_motion_on
+    event_data_template:
+      light_source: "{{ trigger.event.data.light_source }}"
+  - event: pause_motion_off
+    event_data_template:
+      light_source: "{{ trigger.event.data.light_source }}"
+
+- id: pause_motion_on
+  alias: Pause motion on
+  trigger:
+  - platform: event
+    event_type: pause_motion_on
+  condition:
+  - condition: template
+    value_template: "{{ states('automation.motion_on_' ~ trigger.event.data.light_source) == 'on' }}"
+#  - condition: state
+#    entity_id: input_boolean.motion_activated_paneler_skrivbord
+#    state: "on"
+  action:
+#  - service: input_boolean.turn_off
+#    target:
+#      entity_id: input_boolean.motion_activated_paneler_skrivbord
+  - service: homeassistant.turn_off
+    data_template:
+      entity_id: "automation.motion_on_{{ trigger.event.data.light_source }}"
+- id: pause_motion_off
+  alias: Pause motion off
+  trigger:
+  - platform: event
+    event_type: pause_motion_off
+  condition:
+  - condition: template
+    value_template: "{{ states('automation.motion_off_' ~ trigger.event.data.light_source) == 'on' }}"
+#  - condition: state
+#    entity_id: input_boolean.motion_activated_paneler_skrivbord
+#    state: "on"
+  action:
+#  - service: input_boolean.turn_off
+#    target:
+#      entity_id: input_boolean.motion_activated_paneler_skrivbord
+  - service: homeassistant.turn_off
+    data_template:
+      entity_id: "automation.motion_off_{{ trigger.event.data.light_source }}"
+
+- id: unpause_motion_on
+  alias: UnpPause motion on
+  trigger:
+  - platform: event
+    event_type: unpause_motion_on
+  condition:
+  - condition: template
+    value_template: "{{ states('automation.motion_on_' ~ trigger.event.data.light_source) == 'off' }}"
+  action:
+  - service: homeassistant.turn_on
+    data_template:
+      entity_id: "automation.motion_on_{{ trigger.event.data.light_source }}"
+- id: unpause_motion_off
+  alias: Unpause motion off
+  trigger:
+  - platform: event
+    event_type: unpause_motion_off
+  condition:
+  - condition: template
+    value_template: "{{ states('automation.motion_off_' ~ trigger.event.data.light_source) == 'off' }}"
+  action:
+  - service: homeassistant.turn_on
+    data_template:
+      entity_id: "automation.motion_off_{{ trigger.event.data.light_source }}"

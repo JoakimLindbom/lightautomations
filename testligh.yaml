@@ -1,0 +1,596 @@
+#+-------------------------------------------------
+#| Name: testlight
+#| Light: light.testlight
+#| Motion: binary_sensor.ikea_motion_18_occupancy
+#| Switch: sensor.switch_27_action
+#| Device id: 61a1ce8fe054d813412345e31f17a7a2
+#| MQTT Discovery id: 0xf092c1fefef4e154
+#+-------------------------------------------------
+#TODO: Switch MotionMode based on event. H2 handle correct order if change + light on react to same event??
+#TODO Add lights_off_forced bypassing pause/unpause state
+
+input_number:
+  brightness_testlight:
+    name: Brightness testlight
+    min: 0
+    max: 100
+    step: 1
+  brightness_full_testlight:
+    name: Brightness full testlight
+    min: 0
+    max: 100
+    step: 1
+  brightness_medium_testlight:
+    name: Brightness medium testlight
+    min: 0
+    max: 100
+    step: 1
+  brightness_dimmed_testlight:
+    name: Brightness dimmed testlight
+    min: 0
+    max: 100
+    step: 1
+
+input_datetime:
+  timer_lights_off_testlight:
+    name: Timer lights off - testlight
+    has_date: false
+    has_time: true
+  timer_dimmer_testlight:
+    name: Timer dimmer - testlight
+    has_date: false
+    has_time: true
+  motion_activated_after_1_testlight:
+    name: Motion activated after 1 - testlight
+    has_date: false
+    has_time: true
+  motion_activated_before_1_testlight:
+    name: Motion activated before 1 - testlight
+    has_date: false
+    has_time: true
+  motion_activated_after_2_testlight:
+    name: Motion activated after 2 - testlight
+    has_date: false
+    has_time: true
+  motion_activated_before_2_testlight:
+    name: Motion activated before 2 - testlight
+    has_date: false
+    has_time: true
+
+input_boolean:
+  motion_activated_testlight:
+    name: Motion activated testlight
+  expected_testlight:
+    name: Expected value testlight
+
+input_select:
+  automation_mode_testlight:
+    name: Automation mode of testlight
+    options:
+      - Auto
+      - Manual
+  motion_mode_testlight:
+    name: Motion mode of testlight
+    options:
+      - OnOff
+      - FullDimmed
+      - FullDimmedOff
+      - NoMotionControl
+
+input_text:
+  switch_13_helper_last_controller_event:
+    name: IKEA E1743 blueprint helper - Switch 13
+
+input_button:
+  lights_on_testlight:
+    name: Turn on testlight
+  lights_off_testlight:
+    name: Turn off testlight
+
+timer:
+  fulldimmedoff_testlight:
+    duration: "00:15:00"
+
+
+automation:
+#- id: test_variables2
+# variables:
+#    x_name: "testlight"
+#    friendly_x_name: "testlight"
+- id: check_state_change_testlight
+  alias: Check manual override  - testlight
+  mode: queued
+  trigger:
+#    - platform: device
+#      type: changed_states
+#      device_id: 32888fe646a2f9348cb2474c4db3281f
+#      entity_id: light.testlight
+#      domain: light
+    - platform: state
+      entity_id: light.testlight
+  condition:
+    - condition: template
+      value_template: "{{ (states('light.testlight') != states('input_boolean.expected_testlight')) 
+      or (float(state_attr('light.testlight', 'brightness')/2.55) != states('input_number.brightness_testlight')  | float) }}"
+  action:
+    - event: pause_auto_testlight
+#TODO: Handle brightness not availale when light is off  (TypeError: unsupported operand type(s) for /: 'NoneType' and 'float')
+
+
+- id: switch13 testlight
+  alias: Switch13 - testlight
+  description: "Testbrytare testlight"
+  use_blueprint:
+    path: EPMatt/ikea_e1743.yaml
+    input:
+      integration: Zigbee2MQTT
+      controller_entity: sensor.switch_27_action
+      helper_last_controller_event: input_text.switch_13_helper_last_controller_event
+      button_up_double_press: true
+      button_down_double_press: true
+      button_up_long_loop: true
+      button_up_long_max_loop_repeats: 500
+      button_down_long_loop: true
+      button_down_long_max_loop_repeats: 500
+#      action_button_up_short:
+#      action_button_up_long:
+#      action_button_down_short:
+      action_button_up_double:
+      - event: unpause_auto_testlight
+      - event: unpause_auto_testlight
+      action_button_down_double:
+        - event: lights_off
+          event_data_template:
+            entity_id: light.paneler_skrivbord
+            light_source: paneler_skrivbord
+
+- id: testlight  hook
+  alias: testlight - hook
+  description: ""
+  use_blueprint:
+    path: EPMatt/light.yaml
+    input:
+      controller_device: 61a1ce8fe054d813412345e31f17a7a2
+      controller_model: IKEA E1743 TRÅDFRI On/Off Switch & Dimmer
+      light: light.testlight
+      controller_entity: sensor.switch_27_action
+
+#TODO: 2 modes: On/Off, Dimmed/Full
+- id: motion_on_testlight
+  alias: Motion on - testlight
+  trigger:
+  - entity_id: binary_sensor.ikea_motion_18_occupancy
+    platform: state
+    from: 'off'
+    to: 'on'
+  condition:
+    - condition: and
+      conditions:
+        - condition: state
+          entity_id: input_boolean.motion_activated_testlight
+          state: "on"
+        - condition: not
+          conditions:
+            - condition: state
+              entity_id: input_select.motion_mode_testlight
+              state: NoMotionControl
+#    - condition: state
+#      entity_id: input_boolean.motion_activated_testlight
+#      state: "on"
+  action:
+  - event: motion_on_testlight
+
+- id: motion_off_testlight
+  alias: Motion off - testlight
+  trigger:
+  - entity_id: binary_sensor.ikea_motion_18_occupancy
+    platform: state
+    from: 'on'
+    to: 'off'
+    for: "{{ states('input_datetime.timer_lights_off_testlight') }}"
+  condition:
+    - condition: state
+      entity_id: input_boolean.motion_activated_testlight
+      state: "on"
+  action:
+  - event: motion_off_testlight
+
+- id: motion_on_mode_testlight
+  alias: Motion on mode selection - testlight
+  trigger:
+  - platform: event
+    event_type: motion_on_testlight
+  condition:
+    - condition: state
+      entity_id: input_boolean.motion_activated_testlight
+      state: "on"
+  action:
+  - choose:
+      - conditions:
+          - condition: state
+            entity_id: input_select.motion_mode_testlight
+            state: OnOff
+        sequence:
+          - event: lights_on_testlight
+          - service: timer.cancel
+            target:
+              entity_id: timer.fulldimmedoff_testlight
+      - conditions:
+          - condition: or
+            conditions:
+              - condition: state
+                entity_id: input_select.motion_mode_testlight
+                state: FullDimmed
+              - condition: state
+                entity_id: input_select.motion_mode_testlight
+                state: FullDimmedOff
+        sequence:
+          - service: input_number.set_value
+            target:
+              entity_id: input_number.brightness_testlight
+            data_template:
+              value: "{{states('input_number.brightness_full_testlight')}}"
+          - event: lights_on_testlight
+- id: motion_off_mode_testlight
+  alias: Motion off mode selection - testlight
+  trigger:
+  - platform: event
+    event_type: motion_off_testlight
+  condition:
+    - condition: state
+      entity_id: input_boolean.motion_activated_testlight
+      state: "on"
+  action:
+#TODO: Add check for automation mode
+  - choose:
+      - conditions:
+          - condition: state
+            entity_id: input_select.motion_mode_testlight
+            state: OnOff
+        sequence:
+          - event: lights_off_testlight
+      - conditions:
+          - condition: state
+            entity_id: input_select.motion_mode_testlight
+            state: FullDimmed
+        sequence:
+          - service: input_number.set_value
+            target:
+              entity_id: input_number.brightness_testlight
+            data_template:
+              value: "{{states('input_number.brightness_dimmed_testlight')}}"
+          - event: lights_on_testlight
+      - conditions:
+          - condition: state
+            entity_id: input_select.motion_mode_testlight
+            state: FullDimmedOff
+        sequence:
+          - service: input_number.set_value
+            target:
+              entity_id: input_number.brightness_testlight
+            data_template:
+              value: "{{states('input_number.brightness_dimmed_testlight')}}"
+          - event: lights_on_testlight
+          - service: timer.start
+            data:
+              duration: "{{ states('input_datetime.timer_lights_off_testlight')}}"
+            target:
+              entity_id: timer.fulldimmedoff_testlight
+
+- id: timer_lights_off_testlight
+  alias: Lights off after timer finished - testlight
+  trigger:
+    - platform: event
+      event_type: timer.finished
+      event_data:
+        entity_id: timer.fulldimmedoff_testlight
+  action:
+    - event: lights_off_testlight
+    - service: input_number.set_value
+      target:
+        entity_id: input_number.brightness_testlight
+      data_template:
+        value: "{{states('input_number.brightness_full_testlight')}}"
+
+- id: pause_auto_testlight
+  alias: Pause automation - testlight
+  mode: queued
+  trigger:
+  - platform: event
+    event_type: pause_auto_testlight
+  action:
+    - service: input_select.select_option
+      target:
+        entity_id: input_select.automation_mode_testlight
+      data:
+        option: Manual
+- id: unpause_auto_testlight
+  alias: Unpause automation - testlight
+  mode: queued
+  trigger:
+  - platform: event
+    event_type: unpause_auto_testlight
+  action:
+    - service: input_select.select_option
+      target:
+        entity_id: input_select.automation_mode_testlight
+      data:
+        option: Auto
+
+- id: automation_mode_change_testlight
+  alias: Automation mode changed - testlight
+  trigger:
+    - platform: state
+      entity_id:
+        - input_select.automation_mode_testlight
+  action:
+  - choose:
+      - conditions:
+          - condition: state
+            entity_id: input_select.automation_mode_testlight
+            state: Auto
+        sequence:
+          - event: unpause_auto
+            event_data_template:
+              light_source: testlight
+      - conditions:
+          - condition: state
+            entity_id: input_select.automation_mode_testlight
+            state: Manual
+        sequence:
+          - event: pause_auto
+            event_data_template:
+              light_source: testlight
+
+- id: motion_mode_change_testlight
+  alias: Motion mode changed - testlight
+  trigger:
+    - platform: state
+      entity_id:
+        - input_select.motion_mode_testlight
+      to: OnOff
+  action:
+    - service: input_number.set_value
+      target:
+        entity_id: input_number.brightness_testlight
+      data_template:
+        value: "{{states('input_number.brightness_full_testlight')}}"
+        #TODO: Set to "expected value"?
+
+- id: lights_on_testlight
+  alias: Lights On - testlight
+  trigger:
+#    - platform: event
+#      event_type: motion_on_testlight
+    - platform: event
+      event_type: lights_on_testlight
+#    - platform: event
+#      event_type: lights_on_afternoon_1
+  action:
+    - event: lights_on
+      event_data_template:
+        entity_id: light.testlight
+        light_source: testlight
+    - service: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.expected_testlight
+
+- id: light_off_testlight
+  alias: Lights Off - testlight
+  trigger:
+#    - platform: event
+#      event_type: motion_off_testlight
+    - platform: event
+      event_type: lights_off_testlight
+  action:
+    - event: lights_off
+      event_data_template:
+        entity_id: light.testlight
+        light_source: testlight
+    - service: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.expected_testlight
+
+#TODO: Bättre att schedulera unpause sen kväll + innan off_away + off_all ??
+- id: lights_off_scheduled_testlight
+  alias: Lights Off scheduled - testlight
+  trigger:
+    - platform: event
+      event_type: lights_off_all
+    - platform: event
+      event_type: lights_off_upstairs
+    - platform: event
+      event_type: lights_off_away
+    - platform: event
+      event_type: lights_off_evening_2
+    - platform: event
+      event_type: lights_off_evening_3
+    - platform: event
+      event_type: lights_off_night
+  action:
+    - event: lights_off
+      event_data_template:
+        entity_id: light.testlight
+        light_source: testlight
+    - service: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.expected_testlight
+
+# Motion activation
+- id: motion_activation_on_1_testlight
+  alias: Motion activation on 1 - testlight
+  trigger:
+    - platform: time
+      at: input_datetime.motion_activated_after_1_testlight
+  condition:
+  - condition: time
+    before: input_datetime.motion_activated_before_1_testlight
+  action:
+    - event: unpause_motion
+      event_data_template:
+        light_source: testlight
+
+- id: motion_activation_off_1_testlight
+  alias: Motion activation off 1 - testlight
+  trigger:
+    - platform: time
+      at: input_datetime.motion_activated_before_1_testlight
+  action:
+    - event: pause_motion
+      event_data_template:
+        light_source: testlight
+
+- id: motion_activation_on_2_testlight
+  alias: Motion activation on 2 - testlight
+  trigger:
+    - platform: time
+      at: input_datetime.motion_activated_after_2_testlight
+  condition:
+  - condition: time
+    before: input_datetime.motion_activated_before_2_testlight
+  action:
+    - event: unpause_motion
+      event_data_template:
+        light_source: testlight
+
+- id: motion_activation_off_2_testlight
+  alias: Motion activation off 2 - testlight
+  trigger:
+    - platform: time
+      at: input_datetime.motion_activated_before_2_testlight
+  action:
+    - event: pause_motion
+      event_data_template:
+        light_source: testlight
+
+- id: check_state_change_testlight_2
+  alias: Check manual override 2 - testlight
+  mode: queued
+  trigger:
+#    - platform: state
+#      entity_id: sensor.switch_27_action
+    - platform: state
+      entity_id: sensor.switch_13_click
+    - platform: device
+      domain: mqtt
+      device_id: 61a1ce8fe054d813412345e31f17a7a2
+      type: click
+      subtype: "on"
+      discovery_id: 0xf092c1fefef4e154 click_on
+    - platform: device
+      domain: mqtt
+      device_id: 61a1ce8fe054d813412345e31f17a7a2
+      type: click
+      subtype: "off"
+      discovery_id: 0xf092c1fefef4e154 click_off
+
+    - platform: device
+      domain: mqtt
+      device_id: 61a1ce8fe054d813412345e31f17a7a2
+      type: action
+      subtype: "on"
+      discovery_id: 0xf092c1fefef4e154 action_on
+    - platform: device
+      domain: mqtt
+      device_id: 61a1ce8fe054d813412345e31f17a7a2
+      type: action
+      subtype: "off"
+      discovery_id: 0xf092c1fefef4e154 action_off
+
+    - platform: device
+      domain: mqtt
+      device_id: 61a1ce8fe054d813412345e31f17a7a2
+      type: action
+      subtype: brightness_move_up
+      discovery_id: 0xf092c1fefef4e154 brightness_move_up
+    - platform: device
+      domain: mqtt
+      device_id: 61a1ce8fe054d813412345e31f17a7a2
+      type: action
+      subtype: brightness_move_down
+      discovery_id: 0xf092c1fefef4e154 brightness_move_down
+
+    - platform: device
+      domain: mqtt
+      device_id: 61a1ce8fe054d813412345e31f17a7a2
+      type: click
+      subtype: brightness_up
+      discovery_id: 0xf092c1fefef4e154 click_brightness_up
+    - platform: device
+      domain: mqtt
+      device_id: 61a1ce8fe054d813412345e31f17a7a2
+      type: click
+      subtype: brightness_down
+      discovery_id: 0xf092c1fefef4e154 click_brightness_down
+
+    - platform: device
+      domain: mqtt
+      device_id: 61a1ce8fe054d813412345e31f17a7a2
+      type: click
+      subtype: brightness_stop
+      discovery_id: 0xf092c1fefef4e154 click_brightness_stop
+    - platform: device
+      domain: mqtt
+      device_id: 61a1ce8fe054d813412345e31f17a7a2
+      type: action
+      subtype: brightness_stop
+      discovery_id: 0xf092c1fefef4e154 action_brightness_stop
+  condition: []
+  action:
+#  - service: notify.notify
+#    data:
+#      message: "Your message goes here"
+#      title: "Custom subject"
+  - event: pause_auto_testlightXYZXYZ
+#    event_data_template:
+#      light_source: testlight
+#  - event: pause_auto_off
+#    event_data_template:
+#      light_source: testlight
+
+# Setting brightness levels
+- id: set_brightness_full_testlight
+  alias: Set brightness to full - testlight
+  trigger:
+  - platform: event
+    event_type: set_brightness_full_testlight
+  action:
+  - choose:
+      - conditions:
+          - condition: state
+            entity_id: light.testlight
+            state: "on"
+        sequence:
+          - service: input_number.set_value
+            target:
+              entity_id: input_number.brightness_testlight
+            data_template:
+              value: "{{states('input_number.brightness_full_testlight')}}"
+          - event: lights_on_testlight
+      - conditions:
+          - condition: state
+            entity_id: light.testlight
+            state: "off"
+        sequence:
+          - service: input_number.set_value
+            target:
+              entity_id: input_number.brightness_testlight
+            data_template:
+              value: "{{states('input_number.brightness_full_testlight')}}"
+
+# Buttons
+- id: button_lights_on_testlight
+  alias: Button - turn on testlight
+  trigger:
+    - platform: state
+      entity_id: input_button.lights_on_testlight
+  action:
+    - event: lights_on_testlight
+
+- id: button_lights_off_testlight
+  alias: Button - turn off testlight
+  trigger:
+    - platform: state
+      entity_id: input_button.lights_off_testlight
+  action:
+    - event: lights_off_testlight

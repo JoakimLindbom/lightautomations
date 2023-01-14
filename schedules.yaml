@@ -1,0 +1,237 @@
+input_datetime:
+  schedule_morning_on_1:
+    name: Schedule On - morning 1
+    has_date: false
+    has_time: true
+  schedule_morning_on_2:
+    name: Schedule On - morning 2
+    has_date: false
+    has_time: true
+  schedule_morning_on_3:
+    name: Schedule On - morning 3
+    has_date: false
+    has_time: true
+  schedule_morning_off_1:
+    name: Schedule Off - morning 1
+    has_date: false
+    has_time: true
+  schedule_morning_off_2:
+    name: Schedule Off - morning 2
+    has_date: false
+    has_time: true
+  schedule_morning_off_3:
+    name: Schedule Off - morning 3
+    has_date: false
+    has_time: true
+  schedule_afternoon_on_1:
+    name: Schedule On - afternoon 1
+    has_date: false
+    has_time: true
+  schedule_afternoon_on_2:
+    name: Schedule On - afternoon 2
+    has_date: false
+    has_time: true
+  schedule_afternoon_on_3:
+    name: Schedule On - afternoon 3
+    has_date: false
+    has_time: true
+  schedule_evening_off_1:
+    name: Schedule Off - evening 1
+    has_date: false
+    has_time: true
+  schedule_evening_off_2:
+    name: Schedule Off - evening 2
+    has_date: false
+    has_time: true
+  schedule_evening_off_3:
+    name: Schedule Off - evening 3
+    has_date: false
+    has_time: true
+  schedule_night_off:
+    name: Schedule Off - night
+    has_date: false
+    has_time: true
+
+input_boolean:
+  schedule_morning_on_1:
+    name: Schedule On - morning 1
+  schedule_morning_on_2:
+    name: Schedule On - morning 2
+  schedule_morning_on_3:
+    name: Schedule On - morning 3
+  schedule_morning_off_1:
+    name: Schedule Off - morning 1
+  schedule_morning_off_2:
+    name: Schedule Off - morning 2
+  schedule_morning_off_3:
+    name: Schedule Off - morning 3
+  schedule_afternoon_on_1:
+    name: Schedule On - afternoon 1
+  schedule_afternoon_on_2:
+    name: Schedule On - afternoon 2
+  schedule_afternoon_on_3:
+    name: Schedule On - afternoon 3
+  schedule_evening_off_1:
+    name: Schedule Off - evening 1
+  schedule_evening_off_2:
+    name: Schedule Off - evening 2
+  schedule_evening_off_3:
+    name: Schedule Off - evening 3
+  schedule_night_off:
+    name: Schedule Off - night
+
+
+automation:
+ # Morning on events
+  - id: lights_on_morning_1
+    alias: Lights On - morning 1
+    trigger:
+      - platform: time
+        at: input_datetime.schedule_morning_on_1
+    condition:
+      - condition: state
+        entity_id: input_boolean.schedule_morning_on_1
+        state: "on"
+    action:
+    - event: lights_on_morning_1
+  - id: lights_on_morning_2
+    alias: Lights On - morning 2
+    trigger:
+      - platform: time
+        at: input_datetime.schedule_morning_on_2
+    condition:
+      - condition: state
+        entity_id: input_boolean.schedule_morning_on_2
+        state: "on"
+    action:
+    - event: lights_on_morning_2
+  - id: lights_on_morning_3
+    alias: Lights On - morning 3
+    trigger:
+      - platform: time
+        at: input_datetime.schedule_morning_on_3
+    condition:
+      - condition: state
+        entity_id: input_boolean.schedule_morning_on_3
+        state: "on"
+    action:
+    - event: lights_on_morning_3
+
+# Morning off events
+  - id: lights_off_morning_1
+    alias: Lights Off - morning 1
+    trigger:
+      - platform: time
+        at: input_datetime.schedule_morning_off_1
+    condition:
+      - condition: state
+        entity_id: input_boolean.schedule_morning_off_1
+        state: "on"
+    action:
+    - event: lights_off_morning_1
+  - id: lights_off_morning_2
+    alias: Lights Off - morning 2
+    trigger:
+      - platform: time
+        at: input_datetime.schedule_morning_off_2
+    condition:
+      - condition: state
+        entity_id: input_boolean.schedule_morning_off_2
+        state: "on"
+    action:
+    - event: lights_off_morning_2
+  - id: lights_off_morning_3
+    alias: Lights Off - morning 3
+    trigger:
+      - platform: time
+        at: input_datetime.schedule_morning_off_3
+    condition:
+      - condition: state
+        entity_id: input_boolean.schedule_morning_off_3
+        state: "on"
+    action:
+    - event: lights_off_morning_3
+
+# Afternoon events
+  - id: lights_on_afternoon_1
+    alias: Lights On - afternoon 1
+    trigger:
+      - platform: time
+        at: input_datetime.schedule_afternoon_on_1
+    condition:
+      - condition: state
+        entity_id: input_boolean.schedule_afternoon_on_1
+        state: "on"
+    action:
+    - event: lights_on_afternoon_1
+  - id: lights_on_afternoon_2
+    alias: Lights On - afternoon 2
+    trigger:
+      - platform: time
+        at: input_datetime.schedule_afternoon_on_2
+    condition:
+      - condition: state
+        entity_id: input_boolean.schedule_afternoon_on_2
+        state: "on"
+    action:
+    - event: lights_on_afternoon_2
+  - id: lights_on_afternoon_3
+    alias: Lights On - afternoon 3
+    trigger:
+      - platform: time
+        at: input_datetime.schedule_afternoon_on_3
+    condition:
+      - condition: state
+        entity_id: input_boolean.schedule_afternoon_on_3
+        state: "on"
+    action:
+    - event: lights_on_afternoon_3
+
+# Evening events
+  - id: lights_off_evening_1
+    alias: Lights Off - evening 1
+    trigger:
+      - platform: time
+        at: input_datetime.schedule_evening_off_1
+    condition:
+      - condition: state
+        entity_id: input_boolean.schedule_evening_off_1
+        state: "on"
+    action:
+    - event: lights_off_evening
+    - event: lights_off_evening_1
+  - id: lights_off_evening_2
+    alias: Lights Off - evening 2
+    trigger:
+      - platform: time
+        at: input_datetime.schedule_evening_off_2
+    condition:
+      - condition: state
+        entity_id: input_boolean.schedule_evening_off_2
+        state: "on"
+    action:
+    - event: lights_off_evening_2
+  - id: lights_off_evening_3
+    alias: Lights Off - evening 3
+    trigger:
+      - platform: time
+        at: input_datetime.schedule_evening_off_3
+    condition:
+      - condition: state
+        entity_id: input_boolean.schedule_evening_off_3
+        state: "on"
+    action:
+    - event: lights_off_evening_3
+
+# Night event
+  - id: lights_off_night
+    alias: Lights Off - night
+    trigger:
+      - platform: time
+        at: input_datetime.schedule_night_off
+    condition:
+      - condition: state
+        entity_id: input_boolean.schedule_night_off
+        state: "on"
+    action:
+    - event: lights_off_night
